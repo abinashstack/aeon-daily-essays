@@ -1,11 +1,14 @@
 /**
- * Fetches 2 random AEON essays from their RSS feed and sends them via email.
+ * Fetches 2 random AEON essays from their RSS feed and sends them via Gmail SMTP.
  * Used by GitHub Actions on a daily schedule at 6 AM IST.
  *
  * Required environment variables:
- *   RESEND_API_KEY - API key from https://resend.com
+ *   GMAIL_USER     - Your Gmail address (e.g. abinash.gogoi55@gmail.com)
+ *   GMAIL_APP_PASS - Gmail App Password (16-char, from Google account settings)
  *   TO_EMAIL       - Comma-separated recipient email addresses
  */
+
+const nodemailer = require("nodemailer");
 
 const AEON_RSS_URL = "https://aeon.co/feed.rss";
 
@@ -116,37 +119,35 @@ function buildEmailHtml(essays) {
 }
 
 async function sendEmail(html, essays) {
-  const apiKey = process.env.RESEND_API_KEY;
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailAppPass = process.env.GMAIL_APP_PASS;
   const toEmail = process.env.TO_EMAIL;
 
-  if (!apiKey) throw new Error("RESEND_API_KEY environment variable is required");
+  if (!gmailUser) throw new Error("GMAIL_USER environment variable is required");
+  if (!gmailAppPass)
+    throw new Error("GMAIL_APP_PASS environment variable is required");
   if (!toEmail) throw new Error("TO_EMAIL environment variable is required");
 
   const recipients = toEmail.split(",").map((e) => e.trim());
   const subject = `AEON Daily: ${essays.map((e) => e.title).join(" & ")}`;
 
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: gmailUser,
+      pass: gmailAppPass,
     },
-    body: JSON.stringify({
-      from: "AEON Daily <onboarding@resend.dev>",
-      to: recipients,
-      subject,
-      html,
-    }),
   });
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to send email: ${response.status} - ${error}`);
-  }
+  const info = await transporter.sendMail({
+    from: `"AEON Daily" <${gmailUser}>`,
+    to: recipients.join(", "),
+    subject,
+    html,
+  });
 
-  const result = await response.json();
-  console.log("Email sent successfully! ID:", result.id);
-  return result;
+  console.log("Email sent successfully! Message ID:", info.messageId);
+  return info;
 }
 
 async function main() {
