@@ -122,6 +122,7 @@ async function sendEmail(html, essays) {
   if (!apiKey) throw new Error("RESEND_API_KEY environment variable is required");
   if (!toEmail) throw new Error("TO_EMAIL environment variable is required");
 
+  const recipients = toEmail.split(",").map((e) => e.trim());
   const subject = `AEON Daily: ${essays.map((e) => e.title).join(" & ")}`;
 
   const response = await fetch("https://api.resend.com/emails", {
@@ -132,7 +133,7 @@ async function sendEmail(html, essays) {
     },
     body: JSON.stringify({
       from: "AEON Daily <onboarding@resend.dev>",
-      to: [toEmail],
+      to: recipients,
       subject,
       html,
     }),
