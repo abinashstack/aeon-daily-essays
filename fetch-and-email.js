@@ -4,7 +4,7 @@
  *
  * Required environment variables:
  *   RESEND_API_KEY - API key from https://resend.com
- *   TO_EMAIL       - Recipient email address
+ *   TO_EMAIL       - Comma-separated recipient email addresses
  */
 
 const AEON_RSS_URL = "https://aeon.co/feed.rss";
@@ -39,9 +39,7 @@ async function fetchEssays() {
 
     // Extract the summary text from the description HTML
     const descHtml = descMatch?.[1] ?? "";
-    const summaryMatch = descHtml.match(
-      /<\/p><p>(.*?)<\/p><p><em>/s
-    );
+    const summaryMatch = descHtml.match(/<\/p><p>(.*?)<\/p><p><em>/s);
     const summary = summaryMatch?.[1]?.replace(/<[^>]*>/g, "").trim() ?? "";
 
     items.push({
@@ -54,7 +52,9 @@ async function fetchEssays() {
   }
 
   if (items.length < 2) {
-    throw new Error(`Only found ${items.length} essays in feed, need at least 2`);
+    throw new Error(
+      `Only found ${items.length} essays in feed, need at least 2`
+    );
   }
 
   // Pick 2 random essays
